@@ -2,7 +2,8 @@ import random
 
 
 class Character:
-	def __init__(self, hp, ac, attack_bonus, damage, dexterity):
+	def __init__(self, hp, ac, attack_bonus, damage, dexterity, is_player=False):
+		self.is_player = is_player
 		self.original_hp = hp
 		self.hp = hp
 		self.ac = ac
@@ -22,49 +23,70 @@ class Character:
 
 	def take_damage(self, damage):
 		self.hp -= damage
+
+
+def are_players_alive(combatants):
+	return bool(len([combatant for combatant in combatants if combatant.is_alive() and combatant.is_player]))
+
+
+def are_enemies_alive(combatants):
+	return bool(len([combatant for combatant in combatants if combatant.is_alive() and not combatant.is_player]))
 	
+def main():
+	combatants = []
+	combatants += [Character(hp=15, ac=15, attack_bonus=4, damage=6, dexterity=16, is_player=True)]
+	combatants += [Character(hp=15, ac=15, attack_bonus=4, damage=6, dexterity=16, is_player=True)]
+	combatants += [Character(hp=15, ac=15, attack_bonus=4, damage=6, dexterity=16, is_player=True)]
+	combatants += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
+	combatants += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
+	combatants += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
+	combatants += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
+	combatants += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
+	combatants += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
 
-player = Character(hp=15, ac=15, attack_bonus=4, damage=6, dexterity=16)
-enemies = []
-enemies += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
-enemies += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
-enemies += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
-enemies += [Character(hp=7, ac=13, attack_bonus=3, damage=4, dexterity=12)]
+	player_wins = 0
+	total_leftover_hp = 0
+	max_final_player_hp = 0
+	num_simulations = 50000
 
-player_wins = 0
-leftover_hp = 0
-max_final_player_hp = 0
-num_simulations = 100
-
-for _ in range(num_simulations):
-	for enemy in enemies:
-		player.initiative = random.randint(1, 20) + player.dexterity
-		enemy.initiative = random.randint(1, 20) + enemy.dexterity
-		initiative_order = [player, enemy]
-		initiative_order.sort(key=lambda x: x.initiative, reverse=True)
-		while player.is_alive() and enemy.is_alive():
-			for character in initiative_order:
-				if character.is_alive():
-					if character == player:
-						character.attack(enemy)
+	for _ in range(num_simulations):
+		for combatant in combatants:
+			combatant.initiative = random.randint(1, 20) + combatant.dexterity
+			initiative_order = combatants
+			initiative_order.sort(key=lambda x: x.initiative, reverse=True)
+			while are_players_alive(combatants) and are_enemies_alive(combatants):
+				alive_combatants = [combatant for combatant in initiative_order if combatant.is_alive()]
+				alive_players = [combatant for combatant in alive_combatants if combatant.is_player]
+				alive_enemies = [combatant for combatant in alive_combatants if not combatant.is_player]
+				for combatant in alive_combatants:
+					if combatant.is_player:
+						enemy = alive_enemies[random.randint(0, len(alive_enemies)-1)]
+						combatant.attack(enemy)
 					else:
-						character.attack(player)
+						player = alive_players[random.randint(0, len(alive_players)-1)]
+						combatant.attack(player)
 
-	if player.is_alive():
-		leftover_hp += player.hp
-		if player.hp > max_final_player_hp:
-			max_final_player_hp = player.hp
-		player_wins += 1
+		if are_players_alive(combatants):
+			alive_players = [combatant for combatant in alive_combatants if combatant.is_player]
+			leftover_hp = 0
+			for player in alive_players:
+				leftover_hp += player.hp
+				if player.hp > max_final_player_hp:
+					max_final_player_hp = player.hp
+			total_leftover_hp += leftover_hp / len(alive_players)
+			player_wins += 1
 
-	# Reset characters for the next battle
-	player.hp = player.original_hp
-	for enemy in enemies:
-		enemy.hp = enemy.original_hp
+		# Reset combatants for the next battle
+		for combatant in combatants:
+			combatant.hp = combatant.original_hp
 
-# Calculate win percentage
-win_percentage = (player_wins / num_simulations) * 100
-average_final_player_hp = leftover_hp / num_simulations
+	# Calculate win percentage
+	player_win_percentage = (player_wins / num_simulations) * 100
+	average_final_player_hp = total_leftover_hp / num_simulations
 
-print(f"{win_percentage=}")
-print(f"{average_final_player_hp=}")
-print(f"{max_final_player_hp=}")
+	print(f"player win percentage: {player_win_percentage:.2f}%")
+	print(f"average final player hp: {average_final_player_hp:.2f}")
+	print(f"max final player hp: {max_final_player_hp}")
+
+
+main()
